@@ -267,16 +267,27 @@
 				if (data.audioUrl) {
 					const audio = new Audio(data.audioUrl);
 					audio.play();
+					return;
+				}
+				// Handle fallback response from server
+				if (data.useBrowserTTS) {
+					useBrowserSpeech(text);
+					return;
 				}
 			}
+			// If response not ok, fallback to browser TTS
+			useBrowserSpeech(text);
 		} catch (error) {
 			console.error('TTS failed:', error);
-			// Fallback to browser speech synthesis
-			if ('speechSynthesis' in window) {
-				const utterance = new SpeechSynthesisUtterance(text);
-				utterance.rate = $chatStore.voiceSettings.speed;
-				speechSynthesis.speak(utterance);
-			}
+			useBrowserSpeech(text);
+		}
+	}
+
+	function useBrowserSpeech(text: string) {
+		if ('speechSynthesis' in window) {
+			const utterance = new SpeechSynthesisUtterance(text);
+			utterance.rate = $chatStore.voiceSettings.speed;
+			speechSynthesis.speak(utterance);
 		}
 	}
 
