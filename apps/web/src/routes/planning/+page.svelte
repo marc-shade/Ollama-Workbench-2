@@ -560,4 +560,3 @@
 		</div>
 	</div>
 {/if}
-</script>
