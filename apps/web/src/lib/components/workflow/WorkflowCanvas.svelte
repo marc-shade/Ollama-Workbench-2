@@ -7,10 +7,7 @@
 		type Node,
 		type Edge,
 		type NodeTypes,
-		type OnNodesChange,
-		type OnEdgesChange,
-		applyNodeChanges,
-		applyEdgeChanges
+		BackgroundVariant
 	} from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 
@@ -33,8 +30,8 @@
 		onEdgesChange: onEdgesChangeCallback
 	}: Props = $props();
 
-	// Use Svelte 5 $state for reactive arrays (not writable stores)
-	// Ensure we always have arrays, never undefined
+	// Use Svelte 5 $state for reactive arrays
+	// These will be two-way bound to SvelteFlow
 	let nodes = $state<Node[]>(Array.isArray(initialNodes) ? [...initialNodes] : []);
 	let edges = $state<Edge[]>(Array.isArray(initialEdges) ? [...initialEdges] : []);
 
@@ -45,17 +42,26 @@
 		output: OutputNode
 	};
 
-	// Handle XYFlow node changes
-	const handleNodesChange: OnNodesChange = (changes) => {
-		nodes = applyNodeChanges(changes, nodes);
-		onNodesChangeCallback?.(nodes);
-	};
+	// Track previous values to detect changes
+	let prevNodesLength = $state(nodes.length);
+	let prevEdgesLength = $state(edges.length);
 
-	// Handle XYFlow edge changes
-	const handleEdgesChange: OnEdgesChange = (changes) => {
-		edges = applyEdgeChanges(changes, edges);
-		onEdgesChangeCallback?.(edges);
-	};
+	// Notify parent of changes via $effect
+	$effect(() => {
+		// Check if nodes actually changed (compare by length and reference)
+		if (nodes.length !== prevNodesLength || nodes !== nodes) {
+			prevNodesLength = nodes.length;
+			onNodesChangeCallback?.(nodes);
+		}
+	});
+
+	$effect(() => {
+		// Check if edges actually changed
+		if (edges.length !== prevEdgesLength || edges !== edges) {
+			prevEdgesLength = edges.length;
+			onEdgesChangeCallback?.(edges);
+		}
+	});
 
 	// Add node function (exposed for parent)
 	export function addNode(type: string, data: Record<string, unknown>, position?: { x: number; y: number }) {
@@ -67,7 +73,6 @@
 			data
 		};
 		nodes = [...nodes, newNode];
-		onNodesChangeCallback?.(nodes);
 		return id;
 	}
 
@@ -82,7 +87,6 @@
 			style: 'stroke: hsl(var(--primary)); stroke-width: 2px;'
 		};
 		edges = [...edges, newEdge];
-		onEdgesChangeCallback?.(edges);
 		return id;
 	}
 
@@ -90,8 +94,6 @@
 	export function clearCanvas() {
 		nodes = [];
 		edges = [];
-		onNodesChangeCallback?.(nodes);
-		onEdgesChangeCallback?.(edges);
 	}
 
 	// Get current state
@@ -102,27 +104,24 @@
 
 <div class="h-full w-full rounded-xl overflow-hidden border border-border">
 	<SvelteFlow
-		{nodes}
-		{edges}
+		bind:nodes
+		bind:edges
 		{nodeTypes}
-		onnodeschange={handleNodesChange}
-		onedgeschange={handleEdgesChange}
 		fitView
 		defaultEdgeOptions={{
 			animated: true,
 			style: 'stroke: hsl(var(--primary)); stroke-width: 2px;'
 		}}
 		connectionLineStyle="stroke: hsl(var(--primary)); stroke-width: 2px;"
-		snapToGrid
 		snapGrid={[15, 15]}
 	>
 		<Controls
 			class="!bg-card !border-border !rounded-lg"
 		/>
 		<Background
-			variant="dots"
+			variant={BackgroundVariant.Dots}
 			gap={15}
-			color="hsl(var(--muted-foreground) / 0.2)"
+			patternColor="hsl(var(--muted-foreground) / 0.2)"
 		/>
 		<MiniMap
 			class="!bg-card !border-border !rounded-lg"
