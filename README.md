@@ -2,7 +2,7 @@
 
 **The Developer's Local LLM IDE** - A professional-grade workbench for local AI development, testing, and orchestration.
 
-## Features
+**FEATURES**
 
 - **Chat Interface** - Streaming conversations with local models via Ollama
 - **Agent Builder** - Visual multi-agent orchestration with node-based editor
