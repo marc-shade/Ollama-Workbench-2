@@ -34,7 +34,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ollama-workbench-2.git
+git clone https://github.com/marc-shade/Ollama-Workbench-2.git
 cd ollama-workbench-2
 
 # Install frontend dependencies
@@ -173,26 +173,36 @@ npm run tauri build  # Production build
 
 ## Roadmap
 
-### Phase 1: Foundation (Current)
-- [x] Project scaffolding
+### Phase 1: Foundation ✅
+- [x] Project scaffolding (SvelteKit 2 + FastAPI + Tauri 2.0)
 - [x] Chat interface with streaming
 - [x] Settings management
-- [ ] Model selection and management
+- [x] Model selection and management
+- [x] **Comprehensive Agent Settings** (v1 feature parity+)
+  - Agent Types (Coder, Analyst, Creative Writer, Researcher, Tutor, General)
+  - Metacognitive Types (Chain of Thought, Tree of Thought, Visualization, Self-Reflection, Socratic, First Principles)
+  - Voice Types (Professional, Friendly, Concise, Detailed, Casual, Academic, Encouraging)
+  - Advanced Thinking with IAP (Instance-Adaptive Prompting)
+  - Custom Thinking Steps
+  - Full model parameters (temperature, penalties, mirostat, etc.)
 
-### Phase 2: Developer Tools
+### Phase 2: Developer Tools (Current)
 - [ ] Tools debugger with call tracing
 - [ ] Prompt lab with versioning
 - [ ] MCP server management
+- [ ] Corpus/RAG document management
 
 ### Phase 3: Advanced Features
-- [ ] Multi-agent builder
+- [ ] Multi-agent builder with visual workflow
 - [ ] RAG pipeline integration
-- [ ] OpenAI-compatible API
+- [ ] OpenAI-compatible API endpoint
+- [ ] Episodic memory integration
 
 ### Phase 4: Production
-- [ ] Desktop app release
+- [ ] Desktop app release (macOS, Windows, Linux)
 - [ ] Plugin system
 - [ ] Team collaboration features
+- [ ] Model fine-tuning interface
 
 ## Contributing
 
