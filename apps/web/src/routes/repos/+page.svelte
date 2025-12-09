@@ -283,9 +283,12 @@
 			{:else}
 				<div class="space-y-2">
 					{#each repos as repo}
-						<button
+						<div
 							onclick={() => selectRepo(repo)}
-							class="w-full text-left p-3 rounded-lg border transition-colors {selectedRepo?.id === repo.id
+							onkeydown={(e) => e.key === 'Enter' && selectRepo(repo)}
+							role="button"
+							tabindex="0"
+							class="w-full text-left p-3 rounded-lg border transition-colors cursor-pointer {selectedRepo?.id === repo.id
 								? 'border-primary bg-primary/5'
 								: 'border-border hover:bg-muted'}"
 						>
@@ -332,7 +335,7 @@
 									{repo.error}
 								</div>
 							{/if}
-						</button>
+						</div>
 					{/each}
 				</div>
 			{/if}
