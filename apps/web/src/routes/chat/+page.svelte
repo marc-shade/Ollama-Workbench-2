@@ -151,7 +151,17 @@
 				})
 			});
 
-			if (!response.ok) throw new Error('Chat request failed');
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				// Handle FastAPI validation errors (detail is array) or simple errors
+				let errorDetail: string;
+				if (Array.isArray(errorData.detail)) {
+					errorDetail = errorData.detail.map((e: { msg?: string }) => e.msg || 'Validation error').join('; ');
+				} else {
+					errorDetail = errorData.detail || `Chat request failed (${response.status})`;
+				}
+				throw new Error(errorDetail);
+			}
 
 			if ($agentSettingsStore.enableStreaming) {
 				// Stream response
@@ -229,8 +239,9 @@
 			}
 
 			console.error('Chat error:', error);
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			chatStore.updateMessage(assistantMsgId, {
-				content: 'Error: Failed to get response. Check your connection.',
+				content: `Error: ${errorMessage}`,
 				isStreaming: false
 			});
 		} finally {

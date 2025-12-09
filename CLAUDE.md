@@ -32,11 +32,11 @@ npm run check
 # Linting (frontend)
 npm run lint
 
+# Format code (frontend)
+cd apps/web && npm run format
+
 # Run all tests
 npm run test
-
-# Frontend tests only
-npm run test:web
 
 # Backend tests only
 cd packages/api && pytest
@@ -51,72 +51,57 @@ cd apps/desktop && npm run tauri dev
 docker-compose up -d
 ```
 
-## Project Structure
-
-```
-apps/
-├── web/                    # SvelteKit frontend
-│   └── src/
-│       ├── lib/
-│       │   ├── components/ # Svelte components
-│       │   │   ├── chat/   # Chat interface components
-│       │   │   ├── common/ # Shared components (Header, Sidebar, ModelSelector)
-│       │   │   └── workflow/ # Node-based editor components
-│       │   └── stores/     # Svelte stores (state management)
-│       └── routes/         # SvelteKit pages
-│           ├── chat/       # Chat interface
-│           ├── build/      # Agent builder (node editor)
-│           ├── tools/      # Tools debugger
-│           ├── mcp/        # MCP server management
-│           ├── prompts/    # Prompt lab
-│           └── knowledge/  # Knowledge base (RAG)
-└── desktop/               # Tauri wrapper for desktop builds
-
-packages/
-└── api/                   # FastAPI backend
-    └── src/
-        ├── main.py        # App entry, CORS, router setup
-        └── routers/       # API route handlers
-            ├── chat.py    # Streaming chat via Ollama
-            ├── ollama.py  # Model management
-            ├── agents.py  # Agent configuration
-            ├── tools.py   # Function calling
-            ├── mcp.py     # MCP server integration
-            └── prompts.py # Prompt templates
-```
-
 ## Architecture
+
+### Data Flow
+
+```
+Browser → SvelteKit (5173) → FastAPI (8000) → Ollama (11434)
+                                   ↓
+                            SQLite / Qdrant
+```
+
+Chat requests stream NDJSON from Ollama through FastAPI to the frontend.
 
 ### State Management (Frontend)
 
-Svelte stores in `apps/web/src/lib/stores/` manage application state:
-- `chat.ts` - Conversations, messages, branching, voice settings (persisted to localStorage)
-- `models.ts` - Available Ollama models
-- `settings.ts` - User preferences
-- `connection.ts` - API connection status
+Svelte stores in `apps/web/src/lib/stores/` persist to localStorage:
+- `chat.ts` - Conversations with branching support, voice settings
+- `workflow.ts` - Node editor state
+- `knowledge.ts` - RAG document collections
+- `settings.ts` / `agentSettings.ts` - User and agent preferences
 
-Derived stores provide computed views (activeConversation, activeMessages filtered by branch).
+Derived stores filter data (e.g., `activeMessages` filters by branch).
 
-### API Communication
+### Backend Routers
 
-The frontend communicates with the FastAPI backend which proxies to Ollama:
-1. Frontend sends chat request to `/api/chat`
-2. Backend streams response from Ollama at `OLLAMA_HOST`
-3. Responses are NDJSON (newline-delimited JSON) for streaming
+Each router in `packages/api/src/routers/` maps to an API prefix:
+- `/api/chat` - Streaming chat with agent settings (metacognitive prompts, IAP)
+- `/api/ollama` - Model management, server status
+- `/api/knowledge` - Document upload, chunking, RAG queries
+- `/api/memory` - Episodic memory sessions
+- `/api/projects` - Project CRUD with tasks
+- `/api/planning` - AI-generated project plans
+- `/api/repos` - Git repository cloning/browsing
+- `/api/model-tests` - Capability testing (vision, tools, JSON mode)
+- `/api/compare` - Side-by-side model comparison
+- `/v1/*` - OpenAI-compatible API
 
-### Chat Features
+### Chat Agent Settings
 
-- **Branching**: Conversations support branching from any message point
-- **Voice**: TTS/STT integration via voice settings
-- **Export**: JSON, Markdown, HTML export of conversations
-- **Tool Calls**: Function calling support with result display
+The chat system supports advanced agent configuration:
+- **Metacognitive types**: Chain-of-thought, Tree-of-thought, Self-reflection, Socratic, First-principles
+- **IAP (Instance-Adaptive Prompting)**: Single-saliency (ss) and Multi-vote (mv) strategies
+- **Custom thinking steps**: User-defined reasoning workflows
+
+### Conversation Branching
+
+Messages track `branchId` and `parentBranchId`. The `activeMessages` derived store resolves which messages to display by walking the branch hierarchy from fork points.
 
 ### Workflow Editor
 
-Uses XYFlow (`@xyflow/svelte`) for visual agent orchestration:
-- `AgentNode` - LLM agent configuration
-- `ToolNode` - Function/tool integration
-- `InputNode` / `OutputNode` - Workflow I/O
+Uses XYFlow (`@xyflow/svelte`) for visual agent orchestration with node types:
+- `AgentNode`, `ToolNode`, `InputNode`, `OutputNode`
 
 ## Configuration
 
@@ -129,13 +114,18 @@ Uses XYFlow (`@xyflow/svelte`) for visual agent orchestration:
 | `QDRANT_HOST` | Qdrant hostname | `localhost` |
 | `QDRANT_PORT` | Qdrant port | `6333` |
 
+### Remote Ollama
+
+```bash
+export OLLAMA_HOST=http://192.168.1.186:11434
+```
+
 ### CORS Origins
 
 Backend allows: `localhost:5173` (dev), `localhost:1420` (Tauri dev), `tauri://localhost` (desktop)
 
-## Python Backend
+## Python Backend Setup
 
-Uses hatchling build system. Development setup:
 ```bash
 cd packages/api
 python -m venv .venv
@@ -144,3 +134,17 @@ pip install -e ".[dev]"  # Includes pytest, ruff
 ```
 
 Linting with ruff: line length 100, Python 3.11 target.
+
+## Key API Endpoints
+
+Full docs at `http://localhost:8000/docs` when running.
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/chat` | Streaming chat with agent settings |
+| `GET /api/ollama/tags` | List available models |
+| `POST /api/knowledge/documents` | Upload and embed document |
+| `POST /api/knowledge/rag` | Get RAG context |
+| `POST /api/memory/store` | Store episodic memory |
+| `POST /api/planning/generate` | AI-generate project plan |
+| `POST /v1/chat/completions` | OpenAI-compatible endpoint |

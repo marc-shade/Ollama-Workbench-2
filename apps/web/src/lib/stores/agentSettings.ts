@@ -413,11 +413,21 @@ function saveToStorage<T>(key: string, value: T): void {
 // Agent Settings Store
 // ============================================================================
 
+// Valid chatMode values
+const VALID_CHAT_MODES: ChatMode[] = ['general', 'code', 'creative', 'analysis'];
+
 function createAgentSettingsStore() {
 	const stored = loadFromStorage<AgentSettings>(STORAGE_KEY_SETTINGS, DEFAULT_AGENT_SETTINGS);
+
+	// Validate and fix stale chatMode values from localStorage
+	const validatedChatMode: ChatMode = VALID_CHAT_MODES.includes(stored.chatMode as ChatMode)
+		? stored.chatMode
+		: 'general';
+
 	const { subscribe, set, update } = writable<AgentSettings>({
 		...DEFAULT_AGENT_SETTINGS,
 		...stored,
+		chatMode: validatedChatMode,
 		parameters: { ...DEFAULT_PARAMETERS, ...stored.parameters },
 		iapSettings: { ...DEFAULT_IAP_SETTINGS, ...stored.iapSettings }
 	});

@@ -34,8 +34,11 @@ class ChatMode(str, Enum):
 
 
 class CoTStrategy(str, Enum):
+    NONE = "none"
+    CHAIN_OF_THOUGHT = "chain-of-thought"
     IAP_SS = "iap-ss"  # Single-saliency
     IAP_MV = "iap-mv"  # Multi-vote
+    TREE_OF_THOUGHT = "tree-of-thought"
 
 
 # ============================================================================
@@ -45,7 +48,7 @@ class CoTStrategy(str, Enum):
 class IAPSettings(BaseModel):
     """Instance-Adaptive Prompting settings for advanced thinking."""
     enabled: bool = False
-    strategy: CoTStrategy = CoTStrategy.IAP_SS
+    strategy: CoTStrategy = CoTStrategy.NONE
     saliencyThreshold: float = Field(default=0.5, ge=0.0, le=1.0)
     topPromptsCount: int = Field(default=3, ge=1, le=10)
 
@@ -119,10 +122,12 @@ METACOGNITIVE_PROMPTS = {
     "first-principles": "Break this down to its fundamental truths. Start from basic principles and build up your reasoning without relying on assumptions or conventions.",
 }
 
-# IAP (Instance-Adaptive Prompting) templates
+# IAP (Instance-Adaptive Prompting) and CoT templates
 IAP_TEMPLATES = {
+    "chain-of-thought": "Think through this step-by-step. Break down the problem into smaller parts and reason through each one carefully before reaching your conclusion.",
     "iap-ss": "Focus on the most salient aspects of this problem. Identify the key elements that are most relevant to finding a solution, and concentrate your reasoning there.",
     "iap-mv": "Consider this problem from multiple perspectives. Generate several candidate approaches, evaluate each one, and synthesize the best elements into your final answer.",
+    "tree-of-thought": "Explore multiple reasoning paths like branches of a tree. For each approach, consider its implications, then evaluate and prune less promising branches to find the optimal solution.",
 }
 
 
