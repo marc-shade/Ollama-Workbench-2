@@ -126,3 +126,88 @@ async def list_running():
             return response.json()
         except httpx.HTTPError as e:
             raise HTTPException(status_code=503, detail=f"Ollama connection failed: {str(e)}")
+
+
+@router.get("/version")
+async def get_version():
+    """Get Ollama server version."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            response = await client.get(f"{OLLAMA_HOST}/api/version")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=503, detail=f"Ollama connection failed: {str(e)}")
+
+
+@router.get("/status")
+async def get_status():
+    """Get comprehensive Ollama server status for monitoring dashboard."""
+    import time
+    start_time = time.time()
+
+    status = {
+        "host": OLLAMA_HOST,
+        "connected": False,
+        "version": None,
+        "running_models": [],
+        "installed_models": [],
+        "model_count": 0,
+        "running_count": 0,
+        "latency_ms": 0,
+        "error": None
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # Check connection and get version
+        try:
+            version_response = await client.get(f"{OLLAMA_HOST}/api/version")
+            version_response.raise_for_status()
+            status["connected"] = True
+            status["version"] = version_response.json().get("version")
+        except httpx.HTTPError as e:
+            status["error"] = str(e)
+            status["latency_ms"] = round((time.time() - start_time) * 1000)
+            return status
+
+        # Get installed models
+        try:
+            tags_response = await client.get(f"{OLLAMA_HOST}/api/tags")
+            tags_response.raise_for_status()
+            models = tags_response.json().get("models", [])
+            status["installed_models"] = [
+                {
+                    "name": m.get("name"),
+                    "size": m.get("size"),
+                    "modified_at": m.get("modified_at"),
+                    "parameter_size": m.get("details", {}).get("parameter_size"),
+                    "quantization": m.get("details", {}).get("quantization_level"),
+                    "family": m.get("details", {}).get("family")
+                }
+                for m in models
+            ]
+            status["model_count"] = len(models)
+        except httpx.HTTPError:
+            pass
+
+        # Get running models
+        try:
+            ps_response = await client.get(f"{OLLAMA_HOST}/api/ps")
+            ps_response.raise_for_status()
+            running = ps_response.json().get("models", [])
+            status["running_models"] = [
+                {
+                    "name": m.get("name"),
+                    "size": m.get("size"),
+                    "vram_size": m.get("size_vram"),
+                    "expires_at": m.get("expires_at"),
+                    "processor": m.get("details", {}).get("processor", "cpu")
+                }
+                for m in running
+            ]
+            status["running_count"] = len(running)
+        except httpx.HTTPError:
+            pass
+
+    status["latency_ms"] = round((time.time() - start_time) * 1000)
+    return status

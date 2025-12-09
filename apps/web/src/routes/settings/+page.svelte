@@ -16,16 +16,21 @@
 		Upload,
 		RefreshCw,
 		AlertCircle,
-		CheckCircle
+		CheckCircle,
+		Key,
+		Eye,
+		EyeOff
 	} from 'lucide-svelte';
 
 	let activeSection = $state('general');
 	let exportStatus = $state<'idle' | 'success' | 'error'>('idle');
 	let importStatus = $state<'idle' | 'success' | 'error'>('idle');
 	let clearDataConfirm = $state(false);
+	let showApiKeys = $state<Record<string, boolean>>({});
 
 	const sections = [
 		{ id: 'general', label: 'General', icon: Settings },
+		{ id: 'providers', label: 'Providers', icon: Key },
 		{ id: 'models', label: 'Models', icon: Server },
 		{ id: 'appearance', label: 'Appearance', icon: Palette },
 		{ id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
@@ -248,6 +253,283 @@
 							></span>
 						</button>
 					</div>
+				</div>
+
+			{:else if activeSection === 'providers'}
+				<h2 class="mb-4 text-lg font-semibold">API Providers</h2>
+				<p class="text-sm text-muted-foreground mb-6">
+					Configure external AI providers and search APIs. Keys are stored locally in your browser.
+				</p>
+				<div class="space-y-6">
+					<!-- LLM Providers -->
+					<div>
+						<h3 class="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">LLM Providers</h3>
+						<div class="space-y-4">
+							<!-- OpenAI -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-emerald-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-emerald-500">O</span>
+									</div>
+									<span class="font-medium">OpenAI</span>
+								</div>
+								<div class="space-y-3">
+									<div>
+										<label for="openai-key" class="mb-1 block text-sm">API Key</label>
+										<div class="relative">
+											<input
+												id="openai-key"
+												type={showApiKeys['openai'] ? 'text' : 'password'}
+												value={$settingsStore.providers?.openaiApiKey || ''}
+												oninput={(e) => settingsStore.update((s) => ({
+													...s,
+													providers: { ...s.providers, openaiApiKey: (e.target as HTMLInputElement).value }
+												}))}
+												placeholder="sk-..."
+												class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+											/>
+											<button
+												type="button"
+												onclick={() => showApiKeys['openai'] = !showApiKeys['openai']}
+												class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+											>
+												{#if showApiKeys['openai']}
+													<EyeOff class="h-4 w-4" />
+												{:else}
+													<Eye class="h-4 w-4" />
+												{/if}
+											</button>
+										</div>
+									</div>
+									<div>
+										<label for="openai-base" class="mb-1 block text-sm">Base URL</label>
+										<input
+											id="openai-base"
+											type="text"
+											value={$settingsStore.providers?.openaiBaseUrl || 'https://api.openai.com/v1'}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, openaiBaseUrl: (e.target as HTMLInputElement).value }
+											}))}
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+										/>
+										<p class="mt-1 text-xs text-muted-foreground">Change for OpenAI-compatible APIs</p>
+									</div>
+								</div>
+							</div>
+
+							<!-- Anthropic -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-orange-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-orange-500">A</span>
+									</div>
+									<span class="font-medium">Anthropic</span>
+								</div>
+								<div>
+									<label for="anthropic-key" class="mb-1 block text-sm">API Key</label>
+									<div class="relative">
+										<input
+											id="anthropic-key"
+											type={showApiKeys['anthropic'] ? 'text' : 'password'}
+											value={$settingsStore.providers?.anthropicApiKey || ''}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, anthropicApiKey: (e.target as HTMLInputElement).value }
+											}))}
+											placeholder="sk-ant-..."
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+										/>
+										<button
+											type="button"
+											onclick={() => showApiKeys['anthropic'] = !showApiKeys['anthropic']}
+											class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+										>
+											{#if showApiKeys['anthropic']}
+												<EyeOff class="h-4 w-4" />
+											{:else}
+												<Eye class="h-4 w-4" />
+											{/if}
+										</button>
+									</div>
+								</div>
+							</div>
+
+							<!-- Groq -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-purple-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-purple-500">G</span>
+									</div>
+									<span class="font-medium">Groq</span>
+								</div>
+								<div>
+									<label for="groq-key" class="mb-1 block text-sm">API Key</label>
+									<div class="relative">
+										<input
+											id="groq-key"
+											type={showApiKeys['groq'] ? 'text' : 'password'}
+											value={$settingsStore.providers?.groqApiKey || ''}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, groqApiKey: (e.target as HTMLInputElement).value }
+											}))}
+											placeholder="gsk_..."
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+										/>
+										<button
+											type="button"
+											onclick={() => showApiKeys['groq'] = !showApiKeys['groq']}
+											class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+										>
+											{#if showApiKeys['groq']}
+												<EyeOff class="h-4 w-4" />
+											{:else}
+												<Eye class="h-4 w-4" />
+											{/if}
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Search & Research APIs -->
+					<div>
+						<h3 class="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Search & Research</h3>
+						<div class="space-y-4">
+							<!-- Google Search -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-blue-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-blue-500">G</span>
+									</div>
+									<span class="font-medium">Google Custom Search</span>
+								</div>
+								<div class="space-y-3">
+									<div>
+										<label for="google-key" class="mb-1 block text-sm">API Key</label>
+										<div class="relative">
+											<input
+												id="google-key"
+												type={showApiKeys['google'] ? 'text' : 'password'}
+												value={$settingsStore.providers?.googleSearchApiKey || ''}
+												oninput={(e) => settingsStore.update((s) => ({
+													...s,
+													providers: { ...s.providers, googleSearchApiKey: (e.target as HTMLInputElement).value }
+												}))}
+												placeholder="AIza..."
+												class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+											/>
+											<button
+												type="button"
+												onclick={() => showApiKeys['google'] = !showApiKeys['google']}
+												class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+											>
+												{#if showApiKeys['google']}
+													<EyeOff class="h-4 w-4" />
+												{:else}
+													<Eye class="h-4 w-4" />
+												{/if}
+											</button>
+										</div>
+									</div>
+									<div>
+										<label for="google-cx" class="mb-1 block text-sm">Search Engine ID (CX)</label>
+										<input
+											id="google-cx"
+											type="text"
+											value={$settingsStore.providers?.googleSearchCx || ''}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, googleSearchCx: (e.target as HTMLInputElement).value }
+											}))}
+											placeholder="017576..."
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+										/>
+									</div>
+								</div>
+							</div>
+
+							<!-- Serper -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-yellow-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-yellow-500">S</span>
+									</div>
+									<span class="font-medium">Serper</span>
+								</div>
+								<div>
+									<label for="serper-key" class="mb-1 block text-sm">API Key</label>
+									<div class="relative">
+										<input
+											id="serper-key"
+											type={showApiKeys['serper'] ? 'text' : 'password'}
+											value={$settingsStore.providers?.serperApiKey || ''}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, serperApiKey: (e.target as HTMLInputElement).value }
+											}))}
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+										/>
+										<button
+											type="button"
+											onclick={() => showApiKeys['serper'] = !showApiKeys['serper']}
+											class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+										>
+											{#if showApiKeys['serper']}
+												<EyeOff class="h-4 w-4" />
+											{:else}
+												<Eye class="h-4 w-4" />
+											{/if}
+										</button>
+									</div>
+									<p class="mt-1 text-xs text-muted-foreground">Google Search API alternative</p>
+								</div>
+							</div>
+
+							<!-- YouTube -->
+							<div class="rounded-lg border border-border p-4">
+								<div class="flex items-center gap-2 mb-3">
+									<div class="h-6 w-6 rounded bg-red-500/10 flex items-center justify-center">
+										<span class="text-xs font-bold text-red-500">Y</span>
+									</div>
+									<span class="font-medium">YouTube Data API</span>
+								</div>
+								<div>
+									<label for="youtube-key" class="mb-1 block text-sm">API Key</label>
+									<div class="relative">
+										<input
+											id="youtube-key"
+											type={showApiKeys['youtube'] ? 'text' : 'password'}
+											value={$settingsStore.providers?.youtubeApiKey || ''}
+											oninput={(e) => settingsStore.update((s) => ({
+												...s,
+												providers: { ...s.providers, youtubeApiKey: (e.target as HTMLInputElement).value }
+											}))}
+											placeholder="AIza..."
+											class="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+										/>
+										<button
+											type="button"
+											onclick={() => showApiKeys['youtube'] = !showApiKeys['youtube']}
+											class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+										>
+											{#if showApiKeys['youtube']}
+												<EyeOff class="h-4 w-4" />
+											{:else}
+												<Eye class="h-4 w-4" />
+											{/if}
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<p class="text-xs text-muted-foreground pt-4 border-t border-border">
+						API keys are stored securely in your browser's local storage and never sent to any server except the respective API providers.
+					</p>
 				</div>
 
 			{:else if activeSection === 'models'}

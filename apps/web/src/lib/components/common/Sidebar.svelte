@@ -16,22 +16,34 @@
 		Box,
 		BookMarked,
 		Terminal,
-		Brain
+		Brain,
+		Activity,
+		FolderKanban,
+		GitBranch,
+		FlaskConical,
+		GitCompare,
+		Lightbulb
 	} from 'lucide-svelte';
 
 	let collapsed = $state(false);
 
 	const navItems = [
 		{ href: '/chat', icon: MessageSquare, label: 'Chat Studio' },
+		{ href: '/projects', icon: FolderKanban, label: 'Projects' },
+		{ href: '/planning', icon: Lightbulb, label: 'AI Planning' },
+		{ href: '/repos', icon: GitBranch, label: 'Repositories' },
 		{ href: '/brainstorm', icon: Brain, label: 'Brainstorm' },
 		{ href: '/build', icon: Hammer, label: 'Build Center' },
 		{ href: '/models', icon: Box, label: 'Models' },
+		{ href: '/models/tests', icon: FlaskConical, label: 'Model Tests' },
+		{ href: '/compare', icon: GitCompare, label: 'Compare' },
 		{ href: '/tools', icon: Wrench, label: 'Tools Debugger' },
 		{ href: '/mcp', icon: Plug, label: 'MCP Studio' },
 		{ href: '/prompts', icon: FileText, label: 'Prompt Lab' },
 		{ href: '/knowledge', icon: Database, label: 'Knowledge Base' },
 		{ href: '/research', icon: BookMarked, label: 'Research Lab' },
 		{ href: '/sandbox', icon: Terminal, label: 'Code Sandbox' },
+		{ href: '/monitoring', icon: Activity, label: 'Monitoring' },
 		{ href: '/settings', icon: Settings, label: 'Settings' }
 	];
 

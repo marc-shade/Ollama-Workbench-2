@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import chat, ollama, health, agents, tools, mcp, prompts, openai_compat, knowledge, memory
+from .routers import chat, ollama, health, agents, tools, mcp, prompts, openai_compat, knowledge, memory, projects, repos, model_tests, compare, planning
 
 
 @asynccontextmanager
@@ -49,6 +49,11 @@ app.include_router(prompts.router, prefix="/api/prompts", tags=["Prompts"])
 app.include_router(openai_compat.router, prefix="/v1", tags=["OpenAI Compatible"])
 app.include_router(knowledge.router, prefix="/api/knowledge", tags=["Knowledge Base"])
 app.include_router(memory.router, prefix="/api/memory", tags=["Episodic Memory"])
+app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
+app.include_router(repos.router, prefix="/api/repos", tags=["Repository Analysis"])
+app.include_router(model_tests.router, prefix="/api/model-tests", tags=["Model Tests"])
+app.include_router(compare.router, prefix="/api/compare", tags=["Model Comparison"])
+app.include_router(planning.router, prefix="/api/planning", tags=["AI Planning"])
 
 
 @app.get("/")

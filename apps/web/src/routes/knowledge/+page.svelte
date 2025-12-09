@@ -40,7 +40,9 @@
 		AlertCircle,
 		Loader2,
 		Download,
-		MoreVertical
+		MoreVertical,
+		Globe,
+		Link
 	} from 'lucide-svelte';
 
 	type ViewMode = 'documents' | 'collections' | 'search' | 'rag';
@@ -59,6 +61,17 @@
 	let uploadChunkSize = $state(500);
 	let uploadChunkOverlap = $state(50);
 	let uploadCollectionId = $state('default-collection');
+
+	// URL Import state
+	let showUrlModal = $state(false);
+	let urlInput = $state('');
+	let urlChunkStrategy = $state<'fixed' | 'sentence' | 'paragraph' | 'semantic'>('paragraph');
+	let urlChunkSize = $state(512);
+	let urlChunkOverlap = $state(50);
+	let urlCollectionId = $state('');
+	let urlExtractLinks = $state(false);
+	let urlImportProgress = $state<{ url: string; status: string; progress: number } | null>(null);
+	let urlImportError = $state<string | null>(null);
 
 	// Collection state
 	let showCollectionModal = $state(false);
@@ -412,6 +425,87 @@
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
+
+	// URL Import
+	async function importFromUrl() {
+		if (!urlInput.trim()) return;
+
+		// Validate URL
+		try {
+			new URL(urlInput);
+		} catch {
+			urlImportError = 'Please enter a valid URL';
+			return;
+		}
+
+		urlImportError = null;
+		urlImportProgress = { url: urlInput, status: 'Fetching content...', progress: 10 };
+
+		try {
+			const apiUrl = $settingsStore.apiUrl || 'http://localhost:8000';
+			const response = await fetch(`${apiUrl}/api/knowledge/url`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					url: urlInput,
+					collection_id: urlCollectionId || collections[0]?.id || 'default',
+					chunking_method: urlChunkStrategy,
+					chunk_size: urlChunkSize,
+					chunk_overlap: urlChunkOverlap,
+					extract_links: urlExtractLinks,
+					include_metadata: true
+				})
+			});
+
+			urlImportProgress = { url: urlInput, status: 'Processing content...', progress: 50 };
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.detail || 'Failed to import URL');
+			}
+
+			const result = await response.json();
+			urlImportProgress = { url: urlInput, status: 'Generating embeddings...', progress: 80 };
+
+			// Add document to local store
+			knowledgeStore.addDocument({
+				name: result.title || urlInput,
+				type: 'text',
+				mimeType: 'text/html',
+				size: result.content_length,
+				content: '',  // Content is stored server-side
+				chunkingConfig: {
+					strategy: urlChunkStrategy,
+					chunkSize: urlChunkSize,
+					chunkOverlap: urlChunkOverlap
+				},
+				embeddingModel: 'bge-m3',
+				collectionId: urlCollectionId || undefined
+			});
+
+			urlImportProgress = { url: urlInput, status: 'Complete!', progress: 100 };
+
+			// Reset after success
+			setTimeout(() => {
+				urlImportProgress = null;
+				showUrlModal = false;
+				urlInput = '';
+			}, 1000);
+
+		} catch (err) {
+			console.error('URL import failed:', err);
+			urlImportError = err instanceof Error ? err.message : 'Failed to import URL';
+			urlImportProgress = null;
+		}
+	}
+
+	function openUrlModal() {
+		urlInput = '';
+		urlImportError = null;
+		urlImportProgress = null;
+		urlCollectionId = collections[0]?.id || '';
+		showUrlModal = true;
+	}
 </script>
 
 <div class="space-y-6">
@@ -428,6 +522,14 @@
 					{pendingDocs.length} pending
 				</span>
 			{/if}
+			<button
+				type="button"
+				onclick={openUrlModal}
+				class="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+			>
+				<Globe class="h-4 w-4" />
+				Import URL
+			</button>
 			<label class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
 				<Upload class="h-4 w-4" />
 				Upload Document
@@ -962,6 +1064,160 @@
 					class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
 				>
 					{uploadProgress ? 'Processing...' : 'Upload & Process'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- URL Import Modal -->
+{#if showUrlModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<div class="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
+			<div class="flex items-center justify-between border-b border-border p-4">
+				<div class="flex items-center gap-2">
+					<Globe class="h-5 w-5 text-primary" />
+					<h2 class="font-semibold">Import from URL</h2>
+				</div>
+				<button
+					type="button"
+					onclick={() => { showUrlModal = false; urlImportProgress = null; urlImportError = null; }}
+					class="rounded-lg p-1.5 hover:bg-muted transition-colors"
+				>
+					<X class="h-4 w-4" />
+				</button>
+			</div>
+
+			<div class="p-6 space-y-4">
+				<div>
+					<label for="url-input" class="block text-sm font-medium mb-1">URL</label>
+					<div class="flex gap-2">
+						<div class="flex-1 relative">
+							<Link class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<input
+								id="url-input"
+								type="url"
+								bind:value={urlInput}
+								placeholder="https://example.com/article"
+								class="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+							/>
+						</div>
+					</div>
+					<p class="text-xs text-muted-foreground mt-1">
+						Enter a webpage URL to scrape and add to your knowledge base
+					</p>
+				</div>
+
+				{#if urlImportError}
+					<div class="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+						<AlertCircle class="h-4 w-4 flex-shrink-0" />
+						{urlImportError}
+					</div>
+				{/if}
+
+				<div>
+					<label for="url-collection" class="block text-sm font-medium mb-1">Add to Collection</label>
+					<select
+						id="url-collection"
+						bind:value={urlCollectionId}
+						class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="">Select a collection</option>
+						{#each collections as collection}
+							<option value={collection.id}>{collection.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div>
+					<label for="url-chunk-strategy" class="block text-sm font-medium mb-1">Chunking Strategy</label>
+					<select
+						id="url-chunk-strategy"
+						bind:value={urlChunkStrategy}
+						class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="paragraph">Paragraph-based (recommended for web)</option>
+						<option value="sentence">Sentence-based</option>
+						<option value="fixed">Fixed size</option>
+						<option value="semantic">Semantic (experimental)</option>
+					</select>
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="url-chunk-size" class="block text-sm font-medium mb-1">Chunk Size</label>
+						<input
+							id="url-chunk-size"
+							type="number"
+							bind:value={urlChunkSize}
+							min="100"
+							max="4096"
+							class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						/>
+					</div>
+					<div>
+						<label for="url-chunk-overlap" class="block text-sm font-medium mb-1">Overlap</label>
+						<input
+							id="url-chunk-overlap"
+							type="number"
+							bind:value={urlChunkOverlap}
+							min="0"
+							max="256"
+							class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						/>
+					</div>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						id="url-extract-links"
+						type="checkbox"
+						bind:checked={urlExtractLinks}
+						class="rounded border-border"
+					/>
+					<label for="url-extract-links" class="text-sm">Extract and store outbound links</label>
+				</div>
+
+				{#if urlImportProgress}
+					<div class="space-y-2">
+						<div class="flex items-center justify-between text-sm">
+							<span class="flex items-center gap-2">
+								<Loader2 class="h-4 w-4 animate-spin" />
+								{urlImportProgress.status}
+							</span>
+							<span>{urlImportProgress.progress}%</span>
+						</div>
+						<div class="h-2 bg-muted rounded-full overflow-hidden">
+							<div
+								class="h-full bg-primary transition-all duration-300"
+								style="width: {urlImportProgress.progress}%"
+							></div>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<div class="flex justify-end gap-2 border-t border-border p-4">
+				<button
+					type="button"
+					onclick={() => { showUrlModal = false; urlImportProgress = null; urlImportError = null; }}
+					class="px-4 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={importFromUrl}
+					disabled={!urlInput.trim() || !!urlImportProgress}
+					class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+				>
+					{#if urlImportProgress}
+						<Loader2 class="h-4 w-4 animate-spin" />
+						Importing...
+					{:else}
+						<Globe class="h-4 w-4" />
+						Import
+					{/if}
 				</button>
 			</div>
 		</div>

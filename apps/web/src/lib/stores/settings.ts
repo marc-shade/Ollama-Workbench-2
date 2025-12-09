@@ -1,6 +1,17 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
+export interface ProviderSettings {
+	openaiApiKey: string;
+	openaiBaseUrl: string;
+	groqApiKey: string;
+	anthropicApiKey: string;
+	googleSearchApiKey: string;
+	googleSearchCx: string;
+	serperApiKey: string;
+	youtubeApiKey: string;
+}
+
 export interface Settings {
 	theme: 'light' | 'dark' | 'system';
 	ollamaHost: string;
@@ -9,7 +20,19 @@ export interface Settings {
 	fontSize: 'sm' | 'base' | 'lg';
 	sendOnEnter: boolean;
 	showTimestamps: boolean;
+	providers: ProviderSettings;
 }
+
+const defaultProviders: ProviderSettings = {
+	openaiApiKey: '',
+	openaiBaseUrl: 'https://api.openai.com/v1',
+	groqApiKey: '',
+	anthropicApiKey: '',
+	googleSearchApiKey: '',
+	googleSearchCx: '',
+	serperApiKey: '',
+	youtubeApiKey: ''
+};
 
 const defaultSettings: Settings = {
 	theme: 'dark',
@@ -18,7 +41,8 @@ const defaultSettings: Settings = {
 	streamResponses: true,
 	fontSize: 'base',
 	sendOnEnter: true,
-	showTimestamps: false
+	showTimestamps: false,
+	providers: defaultProviders
 };
 
 function createSettingsStore() {

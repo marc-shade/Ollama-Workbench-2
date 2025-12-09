@@ -5,6 +5,7 @@ for Retrieval-Augmented Generation (RAG) integration with chat.
 
 Features:
 - Document upload and chunking
+- URL scraping and web content ingestion
 - Embedding generation via Ollama
 - Semantic search with relevance scoring
 - RAG context injection for chat
@@ -12,15 +13,24 @@ Features:
 
 import os
 import json
+import re
 import uuid
 import hashlib
 from datetime import datetime
 from typing import Optional, Literal
 from pathlib import Path
+from urllib.parse import urlparse, urljoin
 
 import httpx
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
+
+# Optional: BeautifulSoup for better HTML parsing
+try:
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
 
 router = APIRouter()
 
@@ -104,6 +114,28 @@ class RAGRequest(BaseModel):
     limit: int = Field(default=5, ge=1, le=20)
     max_tokens: int = Field(default=2048, ge=256, le=8192)
     include_sources: bool = True
+
+
+class URLIngestRequest(BaseModel):
+    """URL ingestion request."""
+    url: str
+    collection_id: str
+    chunking_method: Literal["fixed", "sentence", "paragraph", "semantic"] = "paragraph"
+    chunk_size: int = Field(default=512, ge=100, le=4096)
+    chunk_overlap: int = Field(default=50, ge=0, le=256)
+    extract_links: bool = False  # Whether to also extract and list links
+    include_metadata: bool = True  # Include page title, description, etc.
+
+
+class URLIngestResult(BaseModel):
+    """Result of URL ingestion."""
+    document_id: str
+    url: str
+    title: str
+    content_length: int
+    chunk_count: int
+    extracted_links: list[str] = []
+    metadata: dict = {}
 
 
 # ============================================================================
@@ -203,6 +235,102 @@ def chunk_paragraphs(text: str, max_size: int, overlap: int) -> list[str]:
         chunks.append(current_chunk.strip())
 
     return chunks
+
+
+# ============================================================================
+# Web Scraping
+# ============================================================================
+
+def extract_text_from_html(html: str, include_links: bool = False) -> tuple[str, str, list[str], dict]:
+    """Extract clean text from HTML content.
+
+    Returns: (text, title, links, metadata)
+    """
+    if HAS_BS4:
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Remove script, style, nav, footer elements
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript']):
+            tag.decompose()
+
+        # Get title
+        title = ""
+        if soup.title:
+            title = soup.title.get_text(strip=True)
+        elif soup.find('h1'):
+            title = soup.find('h1').get_text(strip=True)
+
+        # Get metadata
+        metadata = {}
+        meta_desc = soup.find('meta', attrs={'name': 'description'})
+        if meta_desc and meta_desc.get('content'):
+            metadata['description'] = meta_desc['content']
+
+        meta_keywords = soup.find('meta', attrs={'name': 'keywords'})
+        if meta_keywords and meta_keywords.get('content'):
+            metadata['keywords'] = meta_keywords['content']
+
+        # Get main content (prefer article, main, or body)
+        main_content = soup.find('article') or soup.find('main') or soup.find('body') or soup
+
+        # Extract text
+        text = main_content.get_text(separator='\n', strip=True)
+
+        # Clean up excessive whitespace
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r' {2,}', ' ', text)
+
+        # Extract links if requested
+        links = []
+        if include_links:
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if href.startswith(('http://', 'https://')):
+                    links.append(href)
+
+        return text, title, links, metadata
+    else:
+        # Fallback: basic regex-based extraction
+        # Remove script and style content
+        html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+        html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
+
+        # Get title
+        title_match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+        title = title_match.group(1).strip() if title_match else ""
+
+        # Remove all HTML tags
+        text = re.sub(r'<[^>]+>', ' ', html)
+
+        # Clean up
+        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r' {2,}', ' ', text)
+
+        # Basic link extraction
+        links = []
+        if include_links:
+            links = re.findall(r'href=["\']?(https?://[^"\'>\s]+)', html, re.IGNORECASE)
+
+        return text, title, links, {}
+
+
+async def fetch_url_content(url: str, timeout: float = 30.0) -> tuple[str, str]:
+    """Fetch content from URL.
+
+    Returns: (content, content_type)
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; OllamaWorkbench/2.0; +https://github.com/marc-shade/Ollama-Workbench-2)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        response = await client.get(url, headers=headers)
+        response.raise_for_status()
+
+        content_type = response.headers.get('content-type', 'text/html')
+        return response.text, content_type
 
 
 # ============================================================================
@@ -446,6 +574,152 @@ async def upload_document(
     collection.updated_at = now
 
     return document
+
+
+@router.post("/url")
+async def ingest_url(request: URLIngestRequest) -> URLIngestResult:
+    """Ingest content from a URL into the knowledge base.
+
+    Fetches the webpage, extracts text content, chunks it,
+    generates embeddings, and stores in the collection.
+    """
+    if request.collection_id not in _collections:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    collection = _collections[request.collection_id]
+
+    # Validate URL
+    parsed = urlparse(request.url)
+    if not parsed.scheme or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+
+    if parsed.scheme not in ('http', 'https'):
+        raise HTTPException(status_code=400, detail="Only HTTP/HTTPS URLs are supported")
+
+    try:
+        # Fetch URL content
+        html_content, content_type = await fetch_url_content(request.url)
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch URL: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching URL: {str(e)}")
+
+    # Extract text from HTML
+    if 'text/html' in content_type or 'application/xhtml' in content_type:
+        text, title, links, page_metadata = extract_text_from_html(
+            html_content,
+            include_links=request.extract_links
+        )
+    elif 'text/plain' in content_type:
+        text = html_content
+        title = parsed.path.split('/')[-1] or parsed.netloc
+        links = []
+        page_metadata = {}
+    else:
+        # Try to extract as HTML anyway
+        text, title, links, page_metadata = extract_text_from_html(
+            html_content,
+            include_links=request.extract_links
+        )
+
+    if not text or len(text.strip()) < 50:
+        raise HTTPException(status_code=422, detail="Could not extract meaningful content from URL")
+
+    # Use URL as title fallback
+    if not title:
+        title = parsed.netloc + parsed.path
+
+    # Create document
+    doc_id = f"doc_{uuid.uuid4().hex[:12]}"
+    now = datetime.now().isoformat()
+
+    # Chunk the content
+    strategy = ChunkingStrategy(
+        method=request.chunking_method,
+        chunk_size=request.chunk_size,
+        chunk_overlap=request.chunk_overlap
+    )
+    chunks = chunk_text(text, strategy)
+
+    if not chunks:
+        raise HTTPException(status_code=422, detail="Content could not be chunked")
+
+    # Generate embeddings
+    embeddings = await generate_embedding(chunks, collection.embedding_model)
+
+    # Store chunks with embeddings
+    points = []
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        chunk_id = f"chunk_{doc_id}_{i}"
+        _chunks[chunk_id] = {
+            "content": chunk,
+            "document_id": doc_id,
+            "collection_id": request.collection_id,
+            "embedding": embedding,
+            "metadata": {
+                "url": request.url,
+                "title": title,
+                "chunk_index": i
+            }
+        }
+
+        # Prepare for Qdrant
+        points.append({
+            "id": hashlib.md5(chunk_id.encode()).hexdigest(),
+            "vector": embedding,
+            "payload": {
+                "chunk_id": chunk_id,
+                "document_id": doc_id,
+                "content": chunk,
+                "url": request.url,
+                "title": title,
+                "chunk_index": i
+            }
+        })
+
+    # Store in Qdrant
+    if points:
+        await ensure_collection_exists(request.collection_id, len(embeddings[0]) if embeddings else 768)
+        await store_vectors(request.collection_id, points)
+
+    # Build document metadata
+    doc_metadata = {
+        "url": request.url,
+        "title": title,
+        "chunking": strategy.model_dump(),
+        "source_type": "url"
+    }
+    if request.include_metadata and page_metadata:
+        doc_metadata.update(page_metadata)
+
+    # Create document record
+    document = Document(
+        id=doc_id,
+        collection_id=request.collection_id,
+        filename=title,  # Use title as filename for URL-sourced docs
+        content_type="text/html",
+        size_bytes=len(text.encode('utf-8')),
+        chunk_count=len(chunks),
+        created_at=now,
+        metadata=doc_metadata
+    )
+
+    _documents[doc_id] = document
+
+    # Update collection stats
+    collection.document_count += 1
+    collection.chunk_count += len(chunks)
+    collection.updated_at = now
+
+    return URLIngestResult(
+        document_id=doc_id,
+        url=request.url,
+        title=title,
+        content_length=len(text),
+        chunk_count=len(chunks),
+        extracted_links=links[:50] if request.extract_links else [],  # Limit links
+        metadata=doc_metadata if request.include_metadata else {}
+    )
 
 
 @router.get("/documents")
