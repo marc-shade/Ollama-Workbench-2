@@ -30,8 +30,9 @@
 		onEdgesChange
 	}: Props = $props();
 
-	const nodes = writable<Node[]>(initialNodes);
-	const edges = writable<Edge[]>(initialEdges);
+	// Ensure nodes and edges are always arrays (defensive against undefined props)
+	const nodes = writable<Node[]>(initialNodes ?? []);
+	const edges = writable<Edge[]>(initialEdges ?? []);
 
 	const nodeTypes: NodeTypes = {
 		agent: AgentNode,
