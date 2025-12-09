@@ -1,7 +1,5 @@
 <img width="300" height="300" alt="ollama-workbench" src="https://github.com/user-attachments/assets/580b187f-7009-49df-83ba-4ab8db27b534" align="right" /># Ollama Workbench 2.0
 
-## Ollama Workbench 2.0
-
 **The Developer's Local LLM IDE** - A professional-grade workbench for local AI development, testing, and orchestration.
 
 **FEATURES**
