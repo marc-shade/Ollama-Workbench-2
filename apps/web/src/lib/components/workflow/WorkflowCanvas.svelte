@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
 	import {
 		SvelteFlow,
 		Controls,
@@ -7,7 +6,11 @@
 		MiniMap,
 		type Node,
 		type Edge,
-		type NodeTypes
+		type NodeTypes,
+		type OnNodesChange,
+		type OnEdgesChange,
+		applyNodeChanges,
+		applyEdgeChanges
 	} from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 
@@ -26,13 +29,14 @@
 	let {
 		initialNodes = [],
 		initialEdges = [],
-		onNodesChange,
-		onEdgesChange
+		onNodesChange: onNodesChangeCallback,
+		onEdgesChange: onEdgesChangeCallback
 	}: Props = $props();
 
-	// Ensure nodes and edges are always arrays (defensive against undefined props)
-	const nodes = writable<Node[]>(initialNodes ?? []);
-	const edges = writable<Edge[]>(initialEdges ?? []);
+	// Use Svelte 5 $state for reactive arrays (not writable stores)
+	// Ensure we always have arrays, never undefined
+	let nodes = $state<Node[]>(Array.isArray(initialNodes) ? [...initialNodes] : []);
+	let edges = $state<Edge[]>(Array.isArray(initialEdges) ? [...initialEdges] : []);
 
 	const nodeTypes: NodeTypes = {
 		agent: AgentNode,
@@ -41,15 +45,17 @@
 		output: OutputNode
 	};
 
-	// Subscribe to changes
-	$effect(() => {
-		const unsubNodes = nodes.subscribe((n) => onNodesChange?.(n));
-		const unsubEdges = edges.subscribe((e) => onEdgesChange?.(e));
-		return () => {
-			unsubNodes();
-			unsubEdges();
-		};
-	});
+	// Handle XYFlow node changes
+	const handleNodesChange: OnNodesChange = (changes) => {
+		nodes = applyNodeChanges(changes, nodes);
+		onNodesChangeCallback?.(nodes);
+	};
+
+	// Handle XYFlow edge changes
+	const handleEdgesChange: OnEdgesChange = (changes) => {
+		edges = applyEdgeChanges(changes, edges);
+		onEdgesChangeCallback?.(edges);
+	};
 
 	// Add node function (exposed for parent)
 	export function addNode(type: string, data: Record<string, unknown>, position?: { x: number; y: number }) {
@@ -60,7 +66,8 @@
 			position: position || { x: Math.random() * 400 + 50, y: Math.random() * 300 + 50 },
 			data
 		};
-		nodes.update((n) => [...n, newNode]);
+		nodes = [...nodes, newNode];
+		onNodesChangeCallback?.(nodes);
 		return id;
 	}
 
@@ -74,23 +81,22 @@
 			animated: true,
 			style: 'stroke: hsl(var(--primary)); stroke-width: 2px;'
 		};
-		edges.update((e) => [...e, newEdge]);
+		edges = [...edges, newEdge];
+		onEdgesChangeCallback?.(edges);
 		return id;
 	}
 
 	// Clear all
 	export function clearCanvas() {
-		nodes.set([]);
-		edges.set([]);
+		nodes = [];
+		edges = [];
+		onNodesChangeCallback?.(nodes);
+		onEdgesChangeCallback?.(edges);
 	}
 
 	// Get current state
 	export function getWorkflow() {
-		let currentNodes: Node[] = [];
-		let currentEdges: Edge[] = [];
-		nodes.subscribe((n) => (currentNodes = n))();
-		edges.subscribe((e) => (currentEdges = e))();
-		return { nodes: currentNodes, edges: currentEdges };
+		return { nodes: [...nodes], edges: [...edges] };
 	}
 </script>
 
@@ -99,6 +105,8 @@
 		{nodes}
 		{edges}
 		{nodeTypes}
+		onnodeschange={handleNodesChange}
+		onedgeschange={handleEdgesChange}
 		fitView
 		defaultEdgeOptions={{
 			animated: true,
