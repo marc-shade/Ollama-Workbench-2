@@ -1,0 +1,33 @@
+{
+  "name": "ollama-workbench-2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "The Developer's Local LLM IDE",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd packages/api && python -m uvicorn src.main:app --reload --port 8000",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "cd apps/web && npm run build",
+    "build:api": "cd packages/api && pip install -e .",
+    "build:desktop": "cd apps/desktop && npm run tauri build",
+    "preview": "cd apps/web && npm run preview",
+    "check": "cd apps/web && npm run check",
+    "lint": "cd apps/web && npm run lint",
+    "test": "npm run test:web && npm run test:api",
+    "test:web": "cd apps/web && npm run test",
+    "test:api": "cd packages/api && pytest"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marc-shade/ollama-workbench-2"
+  },
+  "author": "Marc Shade",
+  "license": "MIT"
+}

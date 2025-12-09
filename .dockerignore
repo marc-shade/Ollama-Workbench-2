@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+.pnpm-store
+__pycache__
+*.pyc
+.venv
+venv
+
+# Build outputs
+build
+dist
+.svelte-kit
+target
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Tests
+coverage
+.pytest_cache
+.nyc_output
+
+# Development
+*.local
+.env*.local
+
+# Tauri (not needed in Docker)
+apps/desktop
+src-tauri
