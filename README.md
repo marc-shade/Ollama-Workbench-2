@@ -186,13 +186,33 @@ npm run tauri build  # Production build
   - Custom Thinking Steps
   - Full model parameters (temperature, penalties, mirostat, etc.)
 
-### Phase 2: Developer Tools (Current)
-- [ ] Tools debugger with call tracing
-- [ ] Prompt lab with versioning
-- [ ] MCP server management
-- [ ] Corpus/RAG document management
+### Phase 2: Developer Tools ✅
+- [x] **Tools Debugger** - Complete function calling development environment
+  - Tool library with CRUD operations and JSON schema editor
+  - Visual tool builder with parameter configuration
+  - Test execution with real-time results
+  - Call tracing with detailed request/response inspection
+  - Trace history with filtering and search
+  - Model comparison for tool calling evaluation
+- [x] **Prompt Lab** - Version-controlled prompt engineering
+  - Prompt library with categories, search, and favorites
+  - Version history with diff preview and restore
+  - A/B testing with variant comparison
+  - Execution metrics and performance tracking
+- [x] **MCP Studio** - Build, test, and manage MCP servers
+  - Server management (add, edit, delete, enable/disable)
+  - Multiple transport support (stdio, SSE, HTTP)
+  - Visual tool builder for MCP tools
+  - Testing playground with live execution
+  - Call history with request/response logging
+- [x] **Knowledge Base** - Document management and RAG pipeline
+  - Document upload with multiple chunking strategies
+  - Collections management with metadata
+  - Semantic search with relevance scoring
+  - RAG pipeline configuration
+  - Embedding generation and vector storage
 
-### Phase 3: Advanced Features
+### Phase 3: Advanced Features (Current)
 - [ ] Multi-agent builder with visual workflow
 - [ ] RAG pipeline integration
 - [ ] OpenAI-compatible API endpoint
