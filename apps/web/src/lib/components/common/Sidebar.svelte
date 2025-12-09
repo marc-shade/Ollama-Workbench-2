@@ -67,13 +67,13 @@
 			<div class="flex items-center gap-2">
 				<div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1">
 					<svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-primary-foreground">
-						<!-- Llama head silhouette -->
-						<path d="M12 2C10.5 2 9.5 3 9 4C8.5 3.5 7.5 3 6.5 3C5 3 4 4 4 5.5C4 6.5 4.5 7.5 5.5 8L5 9C4.5 9.5 4 10.5 4 12C4 14 5 16 6 17L6.5 22H8.5L9 18C9.5 18.5 10.5 19 12 19C13.5 19 14.5 18.5 15 18L15.5 22H17.5L18 17C19 16 20 14 20 12C20 10.5 19.5 9.5 19 9L18.5 8C19.5 7.5 20 6.5 20 5.5C20 4 19 3 17.5 3C16.5 3 15.5 3.5 15 4C14.5 3 13.5 2 12 2Z"/>
+						<!-- Llama head with tall ears -->
+						<path d="M7 1C6.2 1 5.5 1.8 5.5 3L6 6L5 7C4 8 3.5 9.5 3.5 11C3.5 13.5 4.5 15.5 6 17L6.5 22H8.5L9 17.5C10 18 11 18.5 12 18.5C13 18.5 14 18 15 17.5L15.5 22H17.5L18 17C19.5 15.5 20.5 13.5 20.5 11C20.5 9.5 20 8 19 7L18 6L18.5 3C18.5 1.8 17.8 1 17 1C16 1 15.2 2 15 3L14.5 5C13.5 5.5 12.5 6 12 6C11.5 6 10.5 5.5 9.5 5L9 3C8.8 2 8 1 7 1Z"/>
 						<!-- Eyes -->
-						<circle cx="9" cy="10" r="1.2" fill="hsl(var(--primary))"/>
-						<circle cx="15" cy="10" r="1.2" fill="hsl(var(--primary))"/>
-						<!-- Nose/mouth area -->
-						<ellipse cx="12" cy="14" rx="2.5" ry="1.5" fill="hsl(var(--primary))" opacity="0.3"/>
+						<circle cx="9" cy="11" r="1.3" fill="hsl(var(--primary))"/>
+						<circle cx="15" cy="11" r="1.3" fill="hsl(var(--primary))"/>
+						<!-- Snout -->
+						<ellipse cx="12" cy="15" rx="2" ry="1.2" fill="hsl(var(--primary))" opacity="0.3"/>
 					</svg>
 				</div>
 				<span class="font-semibold text-sm">Workbench</span>
@@ -81,10 +81,10 @@
 		{:else}
 			<div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1">
 				<svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-primary-foreground">
-					<path d="M12 2C10.5 2 9.5 3 9 4C8.5 3.5 7.5 3 6.5 3C5 3 4 4 4 5.5C4 6.5 4.5 7.5 5.5 8L5 9C4.5 9.5 4 10.5 4 12C4 14 5 16 6 17L6.5 22H8.5L9 18C9.5 18.5 10.5 19 12 19C13.5 19 14.5 18.5 15 18L15.5 22H17.5L18 17C19 16 20 14 20 12C20 10.5 19.5 9.5 19 9L18.5 8C19.5 7.5 20 6.5 20 5.5C20 4 19 3 17.5 3C16.5 3 15.5 3.5 15 4C14.5 3 13.5 2 12 2Z"/>
-					<circle cx="9" cy="10" r="1.2" fill="hsl(var(--primary))"/>
-					<circle cx="15" cy="10" r="1.2" fill="hsl(var(--primary))"/>
-					<ellipse cx="12" cy="14" rx="2.5" ry="1.5" fill="hsl(var(--primary))" opacity="0.3"/>
+					<path d="M7 1C6.2 1 5.5 1.8 5.5 3L6 6L5 7C4 8 3.5 9.5 3.5 11C3.5 13.5 4.5 15.5 6 17L6.5 22H8.5L9 17.5C10 18 11 18.5 12 18.5C13 18.5 14 18 15 17.5L15.5 22H17.5L18 17C19.5 15.5 20.5 13.5 20.5 11C20.5 9.5 20 8 19 7L18 6L18.5 3C18.5 1.8 17.8 1 17 1C16 1 15.2 2 15 3L14.5 5C13.5 5.5 12.5 6 12 6C11.5 6 10.5 5.5 9.5 5L9 3C8.8 2 8 1 7 1Z"/>
+					<circle cx="9" cy="11" r="1.3" fill="hsl(var(--primary))"/>
+					<circle cx="15" cy="11" r="1.3" fill="hsl(var(--primary))"/>
+					<ellipse cx="12" cy="15" rx="2" ry="1.2" fill="hsl(var(--primary))" opacity="0.3"/>
 				</svg>
 			</div>
 		{/if}
