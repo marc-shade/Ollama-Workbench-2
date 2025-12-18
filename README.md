@@ -1,3 +1,11 @@
+[![Stars](https://img.shields.io/github/stars/marc-shade/Ollama-Workbench-2?style=flat-square)](https://github.com/marc-shade/Ollama-Workbench-2/stargazers)
+[![Forks](https://img.shields.io/github/forks/marc-shade/Ollama-Workbench-2?style=flat-square)](https://github.com/marc-shade/Ollama-Workbench-2/network/members)
+[![Svelte](https://img.shields.io/badge/Svelte-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://svelte.dev)
+[![Tauri](https://img.shields.io/badge/Tauri-24C8D8?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/python-3.12+-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![Ollama](https://img.shields.io/badge/Ollama-000000?style=flat-square&logo=ollama&logoColor=white)](https://ollama.ai)
+
 # Ollama Workbench 2.0
 
 <img width="300" height="300" alt="ollama-workbench" src="https://github.com/user-attachments/assets/580b187f-7009-49df-83ba-4ab8db27b534" align="right" />
