@@ -30,15 +30,16 @@ Thumbs.db
 
 # Environment
 .env
-.env.local
-.env.*.local
-*.local
+.env.*
+!.env.example
 
 # Testing
 coverage/
+.coverage
 .pytest_cache/
 .nyc_output/
 htmlcov/
+.mypy_cache/
 
 # Tauri
 apps/desktop/src-tauri/target/
